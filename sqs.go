@@ -100,7 +100,7 @@ func NewSQS(akey, skey, name, region, endpoint, env string) (q *SQSQueue, err er
 	return
 }
 
-func (q *SQSQueue) Start() (ch chan Object) {
+func (q *SQSQueue) Start() chan Object {
 	if q.started {
 		return q.ch
 	}
