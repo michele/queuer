@@ -15,11 +15,12 @@ import (
 )
 
 type SQSQueue struct {
-	svc   *sqs.SQS
-	queue *sqs.GetQueueUrlOutput
-	ch    chan Object
-	quit  chan bool
-	done  chan bool
+	svc     *sqs.SQS
+	queue   *sqs.GetQueueUrlOutput
+	ch      chan Object
+	quit    chan bool
+	done    chan bool
+	started bool
 }
 
 type sqsMessage struct {
@@ -95,11 +96,14 @@ func NewSQS(akey, skey, name, region, endpoint, env string) (q *SQSQueue, err er
 			return nil, errors.Wrap(err, "couldn't get queue")
 		}
 	}
+	q.ch = make(chan Object)
 	return
 }
 
 func (q *SQSQueue) Start() (ch chan Object) {
-	q.ch = make(chan Object)
+	if q.started {
+		return q.ch
+	}
 	go func() {
 		for {
 			select {
@@ -121,7 +125,8 @@ func (q *SQSQueue) Start() (ch chan Object) {
 			}
 		}
 	}()
-	return
+	q.started = true
+	return q.ch
 }
 
 func (q *SQSQueue) Receive() <-chan Object {
