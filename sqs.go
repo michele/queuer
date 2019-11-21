@@ -50,6 +50,7 @@ func NewSQS(akey, skey, name, region, endpoint, env string) (q *SQSQueue, err er
 	var cr *credentials.Credentials
 	q.done = make(chan bool)
 	q.quit = make(chan bool)
+	q.ch = make(chan Object)
 	if env == "production" {
 		p := &ec2rolecreds.EC2RoleProvider{
 			// Pass in a custom timeout to be used when requesting
@@ -96,7 +97,6 @@ func NewSQS(akey, skey, name, region, endpoint, env string) (q *SQSQueue, err er
 			return nil, errors.Wrap(err, "couldn't get queue")
 		}
 	}
-	q.ch = make(chan Object)
 	return
 }
 
@@ -141,6 +141,25 @@ func (q *SQSQueue) Stop() {
 
 func (q *SQSQueue) Publish(bts []byte) error {
 	_, err := q.svc.SendMessage(&sqs.SendMessageInput{
+		MessageBody: aws.String(string(bts)),
+		QueueUrl:    q.queue.QueueUrl,
+	})
+
+	if err != nil {
+		return errors.Wrap(err, "Couldn't publish SQS message")
+	}
+
+	return nil
+}
+
+func (q *SQSQueue) PublishWithRoutingKey(rkey string, bts []byte) error {
+	_, err := q.svc.SendMessage(&sqs.SendMessageInput{
+		MessageAttributes: map[string]*sqs.MessageAttributeValue{
+			"routing_key": &sqs.MessageAttributeValue{
+				DataType:    aws.String("String"),
+				StringValue: aws.String(rkey),
+			},
+		},
 		MessageBody: aws.String(string(bts)),
 		QueueUrl:    q.queue.QueueUrl,
 	})
