@@ -52,7 +52,7 @@ func NewSQS(akey, skey, name, region, endpoint, env string) (q *SQSQueue, err er
 	var cr *credentials.Credentials
 	q.done = make(chan bool)
 	q.quit = make(chan bool)
-	q.ch = make(chan Object)
+	q.ch = make(chan Object, 100)
 	if env == "production" {
 		p := &ec2rolecreds.EC2RoleProvider{
 			// Pass in a custom timeout to be used when requesting
