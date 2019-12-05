@@ -82,16 +82,16 @@ func NewSQS(akey, skey, name, region, endpoint, env string, pushOnly bool) (q *S
 		Region:      aws.String(region),
 		Endpoint:    aws.String(endpoint),
 		Credentials: cr,
-		HTTPClient: NewHTTPClientWithSettings(HTTPClientSettings{
-			Connect:          5 * time.Second,
-			ExpectContinue:   1 * time.Second,
-			IdleConn:         90 * time.Second,
-			ConnKeepAlive:    30 * time.Second,
-			MaxAllIdleConns:  100,
-			MaxHostIdleConns: 10,
-			ResponseHeader:   5 * time.Second,
-			TLSHandshake:     5 * time.Second,
-		}),
+		// HTTPClient: NewHTTPClientWithSettings(HTTPClientSettings{
+		// 	Connect:          5 * time.Second,
+		// 	ExpectContinue:   1 * time.Second,
+		// 	IdleConn:         90 * time.Second,
+		// 	ConnKeepAlive:    30 * time.Second,
+		// 	MaxAllIdleConns:  100,
+		// 	MaxHostIdleConns: 10,
+		// 	ResponseHeader:   5 * time.Second,
+		// 	TLSHandshake:     5 * time.Second,
+		// }),
 	})
 
 	q.queue, err = q.svc.GetQueueUrl(&sqs.GetQueueUrlInput{
