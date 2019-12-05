@@ -17,12 +17,13 @@ import (
 )
 
 type SQSQueue struct {
-	svc     *sqs.SQS
-	queue   *sqs.GetQueueUrlOutput
-	ch      chan Object
-	quit    chan bool
-	done    chan bool
-	started bool
+	svc      *sqs.SQS
+	queue    *sqs.GetQueueUrlOutput
+	ch       chan Object
+	quit     chan bool
+	done     chan bool
+	started  bool
+	pushOnly bool
 }
 
 type sqsMessage struct {
@@ -47,12 +48,15 @@ func (m sqsMessage) Done() error {
 	return nil
 }
 
-func NewSQS(akey, skey, name, region, endpoint, env string) (q *SQSQueue, err error) {
+func NewSQS(akey, skey, name, region, endpoint, env string, pushOnly bool) (q *SQSQueue, err error) {
 	q = &SQSQueue{}
 	var cr *credentials.Credentials
 	q.done = make(chan bool)
 	q.quit = make(chan bool)
-	q.ch = make(chan Object, 100)
+	q.pushOnly = pushOnly
+	if !pushOnly {
+		q.ch = make(chan Object, 100)
+	}
 	if env == "production" {
 		p := &ec2rolecreds.EC2RoleProvider{
 			// Pass in a custom timeout to be used when requesting
@@ -113,7 +117,7 @@ func NewSQS(akey, skey, name, region, endpoint, env string) (q *SQSQueue, err er
 }
 
 func (q *SQSQueue) Start() chan Object {
-	if q.started {
+	if q.started || q.pushOnly {
 		return q.ch
 	}
 	go func() {
@@ -184,6 +188,9 @@ func (q *SQSQueue) PublishWithRoutingKey(rkey string, bts []byte) error {
 }
 
 func (q *SQSQueue) processQueue() ([]*sqs.Message, error) {
+	if q.pushOnly {
+		return nil, ErrQueuePushOnly
+	}
 	var msgs *sqs.ReceiveMessageOutput
 	msgs, err := q.svc.ReceiveMessage(&sqs.ReceiveMessageInput{
 		AttributeNames: []*string{

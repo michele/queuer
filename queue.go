@@ -1,5 +1,11 @@
 package queuer
 
+import "errors"
+
+var (
+	ErrQueuePushOnly = errors.New("queue is push-only")
+)
+
 type Queue interface {
 	Start() (ch chan Object)
 	Publish(bts []byte) error
