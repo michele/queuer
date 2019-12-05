@@ -12,6 +12,8 @@ type Queue interface {
 	PublishWithRoutingKey(rkey string, bts []byte) error
 	Receive() <-chan Object
 	Stop()
+	EnableBatch()
+	Enqueue(bts []byte)
 }
 
 type Object interface {
