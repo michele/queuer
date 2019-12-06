@@ -3,6 +3,7 @@ package queuer
 import (
 	"net"
 	"net/http"
+	"strconv"
 	"sync"
 	"time"
 
@@ -265,8 +266,9 @@ func (q *SQSQueue) processBatch(force bool) error {
 		q.batch = [][]byte{}
 		q.batchLock.Unlock()
 		entries := []*sqs.SendMessageBatchRequestEntry{}
-		for _, m := range toSend {
+		for i, m := range toSend {
 			entries = append(entries, &sqs.SendMessageBatchRequestEntry{
+				Id:          aws.String(strconv.Itoa(i)),
 				MessageBody: aws.String(string(m)),
 			})
 		}
