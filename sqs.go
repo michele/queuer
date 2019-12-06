@@ -244,6 +244,7 @@ var batchSize = 10
 func (q *SQSQueue) processBatch(force bool) error {
 	q.batchLock.Lock()
 	if len(q.batch) == 0 {
+		q.batchLock.Unlock()
 		return nil
 	}
 	if len(q.batch) >= batchSize || force {
