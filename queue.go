@@ -13,6 +13,7 @@ type Queue interface {
 	Receive() <-chan Object
 	Stop()
 	EnableBatch()
+	BatchError() <-chan error
 	Enqueue(bts []byte)
 }
 
