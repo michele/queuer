@@ -27,6 +27,7 @@ type SQSQueue struct {
 	pushOnly  bool
 	batch     [][]byte
 	batchLock *sync.Mutex
+	batchErrs chan error
 }
 
 type sqsMessage struct {
@@ -125,17 +126,28 @@ func (q *SQSQueue) EnableBatch() {
 	}
 	q.batch = [][]byte{}
 	q.batchLock = &sync.Mutex{}
+	q.batchErrs = make(chan error, 10)
 	go func() {
 		for {
 			select {
 			case <-q.done:
-				q.processBatch(true)
+				err := q.processBatch(true)
+				if err != nil {
+					q.batchErrs <- err
+				}
 				return
 			case <-time.After(10 * time.Second):
-				q.processBatch(true)
+				err := q.processBatch(true)
+				if err != nil {
+					q.batchErrs <- err
+				}
 			}
 		}
 	}()
+}
+
+func (q *SQSQueue) BatchError() <-chan error {
+	return q.batchErrs
 }
 
 func (q *SQSQueue) Start() chan Object {
