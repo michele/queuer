@@ -249,7 +249,7 @@ func (q *SQSQueue) processBatch(force bool) error {
 	}
 	if len(q.batch) >= batchSize || force {
 		toSend := make([][]byte, len(q.batch))
-		copy(q.batch, toSend)
+		copy(toSend, q.batch)
 		q.batch = [][]byte{}
 		q.batchLock.Unlock()
 		entries := []*sqs.SendMessageBatchRequestEntry{}
