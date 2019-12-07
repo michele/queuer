@@ -280,6 +280,7 @@ func (q *SQSQueue) processBatch(force bool) error {
 			return errors.Wrap(err, "Couldn't publish SQS messages batch")
 		}
 	}
+	q.batchLock.Unlock()
 	return nil
 }
 
