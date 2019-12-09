@@ -207,6 +207,7 @@ func (q *SQSQueue) Enqueue(bts []byte) {
 	q.batchLock.Lock()
 	q.batch = append(q.batch, bts)
 	q.batchLock.Unlock()
+	q.processBatch(false)
 }
 
 func (q *SQSQueue) PublishWithRoutingKey(rkey string, bts []byte) error {
@@ -255,23 +256,29 @@ func (q *SQSQueue) processQueue() ([]*sqs.Message, error) {
 var batchSize = 10
 
 func (q *SQSQueue) processBatch(force bool) error {
-	q.batchLock.Lock()
 	if len(q.batch) == 0 {
-		q.batchLock.Unlock()
 		return nil
 	}
 	if len(q.batch) >= batchSize || force {
-		toSend := make([][]byte, len(q.batch))
-		copy(toSend, q.batch)
-		q.batch = [][]byte{}
-		q.batchLock.Unlock()
-		entries := []*sqs.SendMessageBatchRequestEntry{}
-		for i, m := range toSend {
-			entries = append(entries, &sqs.SendMessageBatchRequestEntry{
-				Id:          aws.String(strconv.Itoa(i)),
-				MessageBody: aws.String(string(m)),
-			})
+		q.batchLock.Lock()
+		size := len(q.batch)
+		if size > 10 {
+			size = 10
 		}
+		left := [][]byte{}
+		entries := []*sqs.SendMessageBatchRequestEntry{}
+		for i, m := range q.batch {
+			if i < size {
+				entries = append(entries, &sqs.SendMessageBatchRequestEntry{
+					Id:          aws.String(strconv.Itoa(i)),
+					MessageBody: aws.String(string(m)),
+				})
+			} else {
+				left = append(left, m)
+			}
+		}
+		q.batch = left
+		q.batchLock.Unlock()
 		_, err := q.svc.SendMessageBatch(&sqs.SendMessageBatchInput{
 			Entries:  entries,
 			QueueUrl: q.queue.QueueUrl,
@@ -281,7 +288,6 @@ func (q *SQSQueue) processBatch(force bool) error {
 		}
 		return nil
 	}
-	q.batchLock.Unlock()
 	return nil
 }
 
